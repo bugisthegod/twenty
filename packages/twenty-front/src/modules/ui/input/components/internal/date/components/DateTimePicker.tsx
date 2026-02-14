@@ -5,16 +5,35 @@ import {
   type RelativeDateFilter,
 } from 'twenty-shared/utils';
 
+import { currentWorkspaceMemberState } from '@/auth/states/currentWorkspaceMemberState';
+import { Select } from '@/ui/input/components/Select';
 import { DateTimePickerHeader } from '@/ui/input/components/internal/date/components/DateTimePickerHeader';
 import { RelativeDatePickerHeader } from '@/ui/input/components/internal/date/components/RelativeDatePickerHeader';
 import { getHighlightedDates } from '@/ui/input/components/internal/date/utils/getHighlightedDates';
+import { getMonthSelectOptions } from '@/ui/input/components/internal/date/utils/getMonthSelectOptions';
 import { useCloseDropdown } from '@/ui/layout/dropdown/hooks/useCloseDropdown';
+import { ClickOutsideListenerContext } from '@/ui/utilities/pointer-event/contexts/ClickOutsideListenerContext';
 import { useTheme } from '@emotion/react';
 import styled from '@emotion/styled';
+import {
+  autoUpdate,
+  flip,
+  FloatingPortal,
+  offset,
+  shift,
+  useFloating,
+} from '@floating-ui/react';
 import { t } from '@lingui/core/macro';
-import { lazy, Suspense, type ComponentType } from 'react';
+import {
+  lazy,
+  Suspense,
+  useLayoutEffect,
+  useState,
+  type ComponentType,
+} from 'react';
 import type { ReactDatePickerProps as ReactDatePickerLibProps } from 'react-datepicker';
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
+import { useRecoilValue } from 'recoil';
 
 import 'react-datepicker/dist/react-datepicker.css';
 
@@ -28,11 +47,39 @@ import { useGetShiftedDateToSystemTimeZone } from '@/ui/input/components/interna
 import { useUserFirstDayOfTheWeek } from '@/ui/input/components/internal/date/hooks/useUserFirstDayOfTheWeek';
 import { useUserTimezone } from '@/ui/input/components/internal/date/hooks/useUserTimezone';
 import { Temporal } from 'temporal-polyfill';
+import { SOURCE_LOCALE } from 'twenty-shared/translations';
 
 export const MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID =
   'date-picker-month-and-year-dropdown-month-select';
 export const MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID =
   'date-picker-month-and-year-dropdown-year-select';
+
+const StyledOuterWrapper = styled.div`
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  width: 280px;
+`;
+
+const StyledMonthYearSelector = styled.div`
+  background: ${({ theme }) => theme.background.transparent.primary};
+  backdrop-filter: ${({ theme }) => theme.blur.medium};
+  border: 1px solid ${({ theme }) => theme.border.color.medium};
+  border-radius: ${({ theme }) => theme.border.radius.md};
+  box-shadow: ${({ theme }) => theme.boxShadow.strong};
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing(1)};
+  padding: ${({ theme }) => theme.spacing(2)};
+  width: 160px;
+  z-index: 31;
+`;
+
+const years = Array.from(
+  { length: 200 },
+  (_, i) => new Date().getFullYear() + 50 - i,
+).map((year) => ({ label: year.toString(), value: year }));
 
 const StyledContainer = styled.div<{
   calendarDisabled?: boolean;
@@ -348,12 +395,37 @@ export const DateTimePicker = ({
 }: DateTimePickerProps) => {
   const theme = useTheme();
 
+  const currentWorkspaceMember = useRecoilValue(currentWorkspaceMemberState);
+  const userLocale = currentWorkspaceMember?.locale ?? SOURCE_LOCALE;
+
   const { userFirstDayOfTheWeek } = useUserFirstDayOfTheWeek();
 
   const { userTimezone } = useUserTimezone();
 
   const dateToUse =
     date ?? Temporal.Now.zonedDateTimeISO(timeZone ?? userTimezone);
+
+  const [floatingMonth, setFloatingMonth] = useState(dateToUse?.month ?? 1);
+  const [floatingYear, setFloatingYear] = useState(
+    dateToUse?.year ?? new Date().getFullYear(),
+  );
+
+  const { refs, floatingStyles } = useFloating({
+    placement: 'right-start',
+    middleware: [
+      offset(8),
+      flip({ fallbackPlacements: ['left-start'] }),
+      shift({ padding: 8 }),
+    ],
+    whileElementsMounted: autoUpdate,
+  });
+
+  useLayoutEffect(() => {
+    if (isDefined(dateToUse)) {
+      setFloatingMonth(dateToUse.month);
+      setFloatingYear(dateToUse.year);
+    }
+  }, [dateToUse]);
 
   const { getShiftedDateToSystemTimeZone } =
     useGetShiftedDateToSystemTimeZone();
@@ -463,82 +535,126 @@ export const DateTimePicker = ({
     convertFirstDayOfTheWeekToCalendarStartDayNumber(userFirstDayOfTheWeek);
 
   return (
-    <StyledContainer calendarDisabled={isRelative}>
-      <Suspense
-        fallback={
-          <StyledDatePickerFallback>
-            <SkeletonTheme
-              baseColor={theme.background.tertiary}
-              highlightColor={theme.background.transparent.lighter}
-              borderRadius={4}
-            >
-              <Skeleton
-                width={200}
-                height={SKELETON_LOADER_HEIGHT_SIZES.standard.m}
-              />
-              <Skeleton
-                width={240}
-                height={SKELETON_LOADER_HEIGHT_SIZES.standard.l}
-              />
-              <Skeleton
-                width={220}
-                height={SKELETON_LOADER_HEIGHT_SIZES.standard.m}
-              />
-              <Skeleton
-                width={180}
-                height={SKELETON_LOADER_HEIGHT_SIZES.standard.s}
-              />
-            </SkeletonTheme>
-          </StyledDatePickerFallback>
-        }
-      >
-        <ReactDatePicker
-          open={true}
-          selected={shiftedDateForReactDatePicker}
-          selectedDates={selectedDates}
-          openToDate={shiftedDateForReactDatePicker}
-          disabledKeyboardNavigation
-          onChange={handleDateChange}
-          calendarStartDay={calendarStartDayNumber}
-          renderCustomHeader={({
-            prevMonthButtonDisabled,
-            nextMonthButtonDisabled,
-          }) =>
-            isRelative ? (
-              <RelativeDatePickerHeader
-                instanceId={instanceId}
-                direction={relativeDate?.direction ?? 'PAST'}
-                amount={relativeDate?.amount}
-                unit={relativeDate?.unit ?? 'DAY'}
-                onChange={onRelativeDateChange}
-                allowIntraDayUnits={true}
-              />
-            ) : (
-              <DateTimePickerHeader
-                date={dateToUse}
-                onChange={onChange}
-                onChangeMonth={handleChangeMonth}
-                onChangeYear={handleChangeYear}
-                onAddMonth={handleAddMonth}
-                onSubtractMonth={handleSubtractMonth}
-                prevMonthButtonDisabled={prevMonthButtonDisabled}
-                nextMonthButtonDisabled={nextMonthButtonDisabled}
-                hideInput={hideHeaderInput}
-              />
-            )
+    <StyledOuterWrapper ref={refs.setReference}>
+      <StyledContainer calendarDisabled={isRelative}>
+        <Suspense
+          fallback={
+            <StyledDatePickerFallback>
+              <SkeletonTheme
+                baseColor={theme.background.tertiary}
+                highlightColor={theme.background.transparent.lighter}
+                borderRadius={4}
+              >
+                <Skeleton
+                  width={200}
+                  height={SKELETON_LOADER_HEIGHT_SIZES.standard.m}
+                />
+                <Skeleton
+                  width={240}
+                  height={SKELETON_LOADER_HEIGHT_SIZES.standard.l}
+                />
+                <Skeleton
+                  width={220}
+                  height={SKELETON_LOADER_HEIGHT_SIZES.standard.m}
+                />
+                <Skeleton
+                  width={180}
+                  height={SKELETON_LOADER_HEIGHT_SIZES.standard.s}
+                />
+              </SkeletonTheme>
+            </StyledDatePickerFallback>
           }
-          onSelect={handleDateSelect}
-          selectsMultiple={isRelative}
-        />
-      </Suspense>
-      {clearable && (
-        <>
-          <StyledSeparator />
-          <StyledButtonContainer onClick={handleClear}>
-            <StyledButton LeftIcon={IconCalendarX} text={t`Clear`} />
-          </StyledButtonContainer>
-        </>
+        >
+          <ReactDatePicker
+            open={true}
+            selected={shiftedDateForReactDatePicker}
+            selectedDates={selectedDates}
+            openToDate={shiftedDateForReactDatePicker}
+            disabledKeyboardNavigation
+            onChange={handleDateChange}
+            calendarStartDay={calendarStartDayNumber}
+            renderCustomHeader={({
+              prevMonthButtonDisabled,
+              nextMonthButtonDisabled,
+            }) =>
+              isRelative ? (
+                <RelativeDatePickerHeader
+                  instanceId={instanceId}
+                  direction={relativeDate?.direction ?? 'PAST'}
+                  amount={relativeDate?.amount}
+                  unit={relativeDate?.unit ?? 'DAY'}
+                  onChange={onRelativeDateChange}
+                  allowIntraDayUnits={true}
+                />
+              ) : (
+                <DateTimePickerHeader
+                  date={dateToUse}
+                  onChange={onChange}
+                  onAddMonth={handleAddMonth}
+                  onSubtractMonth={handleSubtractMonth}
+                  prevMonthButtonDisabled={prevMonthButtonDisabled}
+                  nextMonthButtonDisabled={nextMonthButtonDisabled}
+                  hideInput={hideHeaderInput}
+                />
+              )
+            }
+            onSelect={handleDateSelect}
+            selectsMultiple={isRelative}
+          />
+        </Suspense>
+        {clearable && (
+          <>
+            <StyledSeparator />
+            <StyledButtonContainer onClick={handleClear}>
+              <StyledButton LeftIcon={IconCalendarX} text={t`Clear`} />
+            </StyledButtonContainer>
+          </>
+        )}
+      </StyledContainer>
+      {!isRelative && (
+        <FloatingPortal>
+          <StyledMonthYearSelector
+            ref={refs.setFloating}
+            style={floatingStyles}
+            data-click-outside-id={MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID}
+          >
+            <ClickOutsideListenerContext.Provider
+              value={{
+                excludedClickOutsideId: MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID,
+              }}
+            >
+              <Select
+                dropdownId={MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID}
+                options={getMonthSelectOptions(userLocale)}
+                onChange={(month: number) => {
+                  setFloatingMonth(month);
+                  handleChangeMonth(month);
+                }}
+                value={floatingMonth}
+                fullWidth={false}
+                dropdownWidth={160}
+              />
+            </ClickOutsideListenerContext.Provider>
+            <ClickOutsideListenerContext.Provider
+              value={{
+                excludedClickOutsideId: MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID,
+              }}
+            >
+              <Select
+                dropdownId={MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID}
+                onChange={(year: number) => {
+                  setFloatingYear(year);
+                  handleChangeYear(year);
+                }}
+                value={floatingYear}
+                options={years}
+                fullWidth={false}
+                dropdownWidth={160}
+              />
+            </ClickOutsideListenerContext.Provider>
+          </StyledMonthYearSelector>
+        </FloatingPortal>
       )}
-    </StyledContainer>
+    </StyledOuterWrapper>
   );
 };

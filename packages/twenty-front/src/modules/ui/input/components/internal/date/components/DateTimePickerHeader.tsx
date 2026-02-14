@@ -1,29 +1,75 @@
 import styled from '@emotion/styled';
-import { useRecoilValue } from 'recoil';
-
-import { currentWorkspaceMemberState } from '@/auth/states/currentWorkspaceMemberState';
-import { Select } from '@/ui/input/components/Select';
+import { useCallback, useRef } from 'react';
 
 import { DateTimePickerInput } from '@/ui/input/components/internal/date/components/DateTimePickerInput';
-import { getMonthSelectOptions } from '@/ui/input/components/internal/date/utils/getMonthSelectOptions';
-import { ClickOutsideListenerContext } from '@/ui/utilities/pointer-event/contexts/ClickOutsideListenerContext';
+import { TimePickerDropdown } from '@/ui/input/components/internal/date/components/TimePickerDropdown';
+import { Dropdown } from '@/ui/layout/dropdown/components/Dropdown';
+import { DropdownContent } from '@/ui/layout/dropdown/components/DropdownContent';
+import { useCloseDropdown } from '@/ui/layout/dropdown/hooks/useCloseDropdown';
 import { type Temporal } from 'temporal-polyfill';
-import { SOURCE_LOCALE } from 'twenty-shared/translations';
-import { IconChevronLeft, IconChevronRight } from 'twenty-ui/display';
-import { LightIconButton } from 'twenty-ui/input';
 import {
-  MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID,
-  MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID,
-} from './DateTimePicker';
+  IconCalendar,
+  IconChevronLeft,
+  IconChevronRight,
+  IconClock,
+} from 'twenty-ui/display';
+import { LightIconButton } from 'twenty-ui/input';
 
-const StyledCustomDatePickerHeader = styled.div`
+export const TIME_PICKER_DROPDOWN_ID = 'date-time-picker-time-dropdown';
+
+const StyledTimeRow = styled.div`
   align-items: center;
   display: flex;
-  justify-content: flex-end;
+  gap: ${({ theme }) => theme.spacing(1)};
+  justify-content: flex-start;
+  padding-bottom: ${({ theme }) => theme.spacing(2)};
   padding-left: ${({ theme }) => theme.spacing(2)};
   padding-right: ${({ theme }) => theme.spacing(2)};
   padding-top: ${({ theme }) => theme.spacing(2)};
+`;
 
+const StyledTimeInputWrapper = styled.div`
+  flex-grow: 1;
+`;
+
+const StyledTimeInputContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing(1)};
+  background: ${({ theme }) => theme.background.tertiary};
+  border-radius: ${({ theme }) => theme.border.radius.sm};
+  padding: ${({ theme }) => theme.spacing(1)} ${({ theme }) => theme.spacing(2)};
+  cursor: pointer;
+  border: 1px solid ${({ theme }) => theme.border.color.light};
+  transition: border-color 0.15s ease;
+
+  &:hover {
+    border-color: ${({ theme }) => theme.border.color.strong};
+  }
+`;
+
+const StyledClockIcon = styled.div`
+  display: flex;
+  align-items: center;
+  color: ${({ theme }) => theme.font.color.tertiary};
+  flex-shrink: 0;
+`;
+
+const StyledTimeDisplay = styled.span`
+  color: ${({ theme }) => theme.font.color.primary};
+  font-size: ${({ theme }) => theme.font.size.md};
+  font-weight: ${({ theme }) => theme.font.weight.medium};
+  user-select: none;
+`;
+
+const StyledRightControls = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.spacing(1)};
+`;
+
+const StyledNavigationButtons = styled.div`
+  display: flex;
   gap: ${({ theme }) => theme.spacing(1)};
 `;
 
@@ -33,16 +79,9 @@ const StyledSeparator = styled.div`
   width: 100%;
 `;
 
-const years = Array.from(
-  { length: 200 },
-  (_, i) => new Date().getFullYear() + 50 - i,
-).map((year) => ({ label: year.toString(), value: year }));
-
 type DateTimePickerHeaderProps = {
   date: Temporal.ZonedDateTime | null;
   onChange?: (date: Temporal.ZonedDateTime | null) => void;
-  onChangeMonth: (month: number) => void;
-  onChangeYear: (year: number) => void;
   onAddMonth: () => void;
   onSubtractMonth: () => void;
   prevMonthButtonDisabled: boolean;
@@ -53,16 +92,49 @@ type DateTimePickerHeaderProps = {
 export const DateTimePickerHeader = ({
   date,
   onChange,
-  onChangeMonth,
-  onChangeYear,
   onAddMonth,
   onSubtractMonth,
   prevMonthButtonDisabled,
   nextMonthButtonDisabled,
   hideInput = false,
 }: DateTimePickerHeaderProps) => {
-  const currentWorkspaceMember = useRecoilValue(currentWorkspaceMemberState);
-  const userLocale = currentWorkspaceMember?.locale ?? SOURCE_LOCALE;
+  const { closeDropdown } = useCloseDropdown();
+  const timeInputWrapperRef = useRef<HTMLDivElement>(null);
+
+  const currentHour = date?.hour ?? 0;
+  const currentMinute = date?.minute ?? 0;
+
+  const dropdownWidth = timeInputWrapperRef.current?.clientWidth ?? 156;
+
+  const formatTime = useCallback((hour: number, minute: number) => {
+    return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+  }, []);
+
+  const handleHourChange = useCallback(
+    (hour: number) => {
+      if (!date) return;
+      onChange?.(date.with({ hour }));
+    },
+    [date, onChange],
+  );
+
+  const handleMinuteChange = useCallback(
+    (minute: number) => {
+      if (!date) return;
+      onChange?.(date.with({ minute }));
+    },
+    [date, onChange],
+  );
+
+  const handleNow = useCallback(() => {
+    if (!date) return;
+    const now = new Date();
+    onChange?.(date.with({ hour: now.getHours(), minute: now.getMinutes() }));
+  }, [date, onChange]);
+
+  const handleCloseDropdown = useCallback(() => {
+    closeDropdown(TIME_PICKER_DROPDOWN_ID);
+  }, [closeDropdown]);
 
   return (
     <>
@@ -72,46 +144,53 @@ export const DateTimePickerHeader = ({
           <StyledSeparator />
         </>
       )}
-      <StyledCustomDatePickerHeader>
-        <ClickOutsideListenerContext.Provider
-          value={{
-            excludedClickOutsideId: MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID,
-          }}
-        >
-          <Select
-            dropdownId={MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID}
-            options={getMonthSelectOptions(userLocale)}
-            onChange={onChangeMonth}
-            value={date?.month ?? undefined}
-            fullWidth
+      <StyledTimeRow>
+        <StyledTimeInputWrapper ref={timeInputWrapperRef}>
+          <Dropdown
+            dropdownId={TIME_PICKER_DROPDOWN_ID}
+            dropdownPlacement="bottom-start"
+            clickableComponent={
+              <StyledTimeInputContainer>
+                <StyledClockIcon>
+                  <IconClock size={16} />
+                </StyledClockIcon>
+                <StyledTimeDisplay>
+                  {formatTime(currentHour, currentMinute)}
+                </StyledTimeDisplay>
+              </StyledTimeInputContainer>
+            }
+            dropdownComponents={
+              <DropdownContent widthInPixels={dropdownWidth}>
+                <TimePickerDropdown
+                  hour={currentHour}
+                  minute={currentMinute}
+                  onHourChange={handleHourChange}
+                  onMinuteChange={handleMinuteChange}
+                  onNow={handleNow}
+                  onClose={handleCloseDropdown}
+                />
+              </DropdownContent>
+            }
           />
-        </ClickOutsideListenerContext.Provider>
-        <ClickOutsideListenerContext.Provider
-          value={{
-            excludedClickOutsideId: MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID,
-          }}
-        >
-          <Select
-            dropdownId={MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID}
-            onChange={onChangeYear}
-            value={date?.year}
-            options={years}
-            fullWidth
-          />
-        </ClickOutsideListenerContext.Provider>
-        <LightIconButton
-          Icon={IconChevronLeft}
-          onClick={onSubtractMonth}
-          size="medium"
-          disabled={prevMonthButtonDisabled}
-        />
-        <LightIconButton
-          Icon={IconChevronRight}
-          onClick={onAddMonth}
-          size="medium"
-          disabled={nextMonthButtonDisabled}
-        />
-      </StyledCustomDatePickerHeader>
+        </StyledTimeInputWrapper>
+        <StyledRightControls>
+          <LightIconButton Icon={IconCalendar} size="medium" disabled />
+          <StyledNavigationButtons>
+            <LightIconButton
+              Icon={IconChevronLeft}
+              onClick={onSubtractMonth}
+              size="medium"
+              disabled={prevMonthButtonDisabled}
+            />
+            <LightIconButton
+              Icon={IconChevronRight}
+              onClick={onAddMonth}
+              size="medium"
+              disabled={nextMonthButtonDisabled}
+            />
+          </StyledNavigationButtons>
+        </StyledRightControls>
+      </StyledTimeRow>
     </>
   );
 };

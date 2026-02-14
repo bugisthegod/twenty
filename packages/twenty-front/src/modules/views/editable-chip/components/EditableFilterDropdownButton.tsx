@@ -1,6 +1,10 @@
 import { useCallback } from 'react';
 
 import { type RecordFilter } from '@/object-record/record-filter/types/RecordFilter';
+import {
+  MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID,
+  MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID,
+} from '@/ui/input/components/internal/date/components/DateTimePicker';
 import { Dropdown } from '@/ui/layout/dropdown/components/Dropdown';
 import { EditableFilterChip } from '@/views/editable-chip/components/EditableFilterChip';
 
@@ -73,6 +77,10 @@ export const EditableFilterDropdownButton = ({
         dropdownOffset={{ y: 8, x: 0 }}
         dropdownPlacement="bottom-start"
         onClose={onFilterDropdownClose}
+        excludedClickOutsideIds={[
+          MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID,
+          MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID,
+        ]}
       />
     </>
   );
