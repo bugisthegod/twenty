@@ -7,6 +7,7 @@ import {
   MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID,
   MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID,
 } from '@/ui/input/components/internal/date/components/DateTimePicker';
+import { TIME_PICKER_DROPDOWN_ID } from '@/ui/input/components/internal/date/components/DateTimePickerHeader';
 import { useRecoilComponentValue } from '@/ui/utilities/state/component-state/hooks/useRecoilComponentValue';
 import { AdvancedFilterChip } from '@/views/advanced-filter-chip/components/AdvancedFilterChip';
 import { ViewBarFilterDropdownIds } from '@/views/constants/ViewBarFilterDropdownIds';
@@ -39,6 +40,7 @@ export const AdvancedFilterDropdownButton = () => {
       excludedClickOutsideIds={[
         MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID,
         MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID,
+        TIME_PICKER_DROPDOWN_ID,
       ]}
     />
   );

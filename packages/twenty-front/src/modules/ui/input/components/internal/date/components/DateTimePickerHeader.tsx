@@ -6,7 +6,8 @@ import { TimePickerDropdown } from '@/ui/input/components/internal/date/componen
 import { Dropdown } from '@/ui/layout/dropdown/components/Dropdown';
 import { DropdownContent } from '@/ui/layout/dropdown/components/DropdownContent';
 import { useCloseDropdown } from '@/ui/layout/dropdown/hooks/useCloseDropdown';
-import { type Temporal } from 'temporal-polyfill';
+import { ClickOutsideListenerContext } from '@/ui/utilities/pointer-event/contexts/ClickOutsideListenerContext';
+import { Temporal } from 'temporal-polyfill';
 import {
   IconCalendar,
   IconChevronLeft,
@@ -128,8 +129,8 @@ export const DateTimePickerHeader = ({
 
   const handleNow = useCallback(() => {
     if (!date) return;
-    const now = new Date();
-    onChange?.(date.with({ hour: now.getHours(), minute: now.getMinutes() }));
+    const now = Temporal.Now.zonedDateTimeISO(date.timeZoneId);
+    onChange?.(date.with({ hour: now.hour, minute: now.minute }));
   }, [date, onChange]);
 
   const handleCloseDropdown = useCallback(() => {
@@ -146,32 +147,38 @@ export const DateTimePickerHeader = ({
       )}
       <StyledTimeRow>
         <StyledTimeInputWrapper ref={timeInputWrapperRef}>
-          <Dropdown
-            dropdownId={TIME_PICKER_DROPDOWN_ID}
-            dropdownPlacement="bottom-start"
-            clickableComponent={
-              <StyledTimeInputContainer>
-                <StyledClockIcon>
-                  <IconClock size={16} />
-                </StyledClockIcon>
-                <StyledTimeDisplay>
-                  {formatTime(currentHour, currentMinute)}
-                </StyledTimeDisplay>
-              </StyledTimeInputContainer>
-            }
-            dropdownComponents={
-              <DropdownContent widthInPixels={dropdownWidth}>
-                <TimePickerDropdown
-                  hour={currentHour}
-                  minute={currentMinute}
-                  onHourChange={handleHourChange}
-                  onMinuteChange={handleMinuteChange}
-                  onNow={handleNow}
-                  onClose={handleCloseDropdown}
-                />
-              </DropdownContent>
-            }
-          />
+          <ClickOutsideListenerContext.Provider
+            value={{
+              excludedClickOutsideId: TIME_PICKER_DROPDOWN_ID,
+            }}
+          >
+            <Dropdown
+              dropdownId={TIME_PICKER_DROPDOWN_ID}
+              dropdownPlacement="bottom-start"
+              clickableComponent={
+                <StyledTimeInputContainer>
+                  <StyledClockIcon>
+                    <IconClock size={16} />
+                  </StyledClockIcon>
+                  <StyledTimeDisplay>
+                    {formatTime(currentHour, currentMinute)}
+                  </StyledTimeDisplay>
+                </StyledTimeInputContainer>
+              }
+              dropdownComponents={
+                <DropdownContent widthInPixels={dropdownWidth}>
+                  <TimePickerDropdown
+                    hour={currentHour}
+                    minute={currentMinute}
+                    onHourChange={handleHourChange}
+                    onMinuteChange={handleMinuteChange}
+                    onNow={handleNow}
+                    onClose={handleCloseDropdown}
+                  />
+                </DropdownContent>
+              }
+            />
+          </ClickOutsideListenerContext.Provider>
         </StyledTimeInputWrapper>
         <StyledRightControls>
           <LightIconButton Icon={IconCalendar} size="medium" disabled />

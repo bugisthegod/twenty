@@ -6,6 +6,7 @@ import {
   MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID,
   MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID,
 } from '@/ui/input/components/internal/date/components/DateTimePicker';
+import { TIME_PICKER_DROPDOWN_ID } from '@/ui/input/components/internal/date/components/DateTimePickerHeader';
 import { useUserTimezone } from '@/ui/input/components/internal/date/hooks/useUserTimezone';
 import { useCloseDropdown } from '@/ui/layout/dropdown/hooks/useCloseDropdown';
 import { currentFocusIdSelector } from '@/ui/utilities/focus/states/currentFocusIdSelector';
@@ -63,10 +64,12 @@ export const DateTimeInput = ({
 
   const { closeDropdown: closeDropdownMonthSelect } = useCloseDropdown();
   const { closeDropdown: closeDropdownYearSelect } = useCloseDropdown();
+  const { closeDropdown: closeDropdownTimePicker } = useCloseDropdown();
 
   const handleEnter = () => {
     closeDropdownYearSelect(MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID);
     closeDropdownMonthSelect(MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID);
+    closeDropdownTimePicker(TIME_PICKER_DROPDOWN_ID);
 
     onEnter(internalValue);
   };
@@ -74,6 +77,7 @@ export const DateTimeInput = ({
   const handleEscape = () => {
     closeDropdownYearSelect(MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID);
     closeDropdownMonthSelect(MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID);
+    closeDropdownTimePicker(TIME_PICKER_DROPDOWN_ID);
 
     onEscape(internalValue);
   };
@@ -88,6 +92,7 @@ export const DateTimeInput = ({
         if (currentFocusId === instanceId) {
           closeDropdownYearSelect(MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID);
           closeDropdownMonthSelect(MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID);
+          closeDropdownTimePicker(TIME_PICKER_DROPDOWN_ID);
           onClickOutside(event, internalValue);
         }
       },
@@ -95,6 +100,7 @@ export const DateTimeInput = ({
       instanceId,
       closeDropdownYearSelect,
       closeDropdownMonthSelect,
+      closeDropdownTimePicker,
       onClickOutside,
       internalValue,
     ],
@@ -108,6 +114,7 @@ export const DateTimeInput = ({
     excludedClickOutsideIds: [
       MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID,
       MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID,
+      TIME_PICKER_DROPDOWN_ID,
     ],
     inputValue: internalZonedDateTime,
     onEnter: handleEnter,

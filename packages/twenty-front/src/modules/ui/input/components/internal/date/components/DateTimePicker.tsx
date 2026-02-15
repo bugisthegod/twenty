@@ -7,7 +7,10 @@ import {
 
 import { currentWorkspaceMemberState } from '@/auth/states/currentWorkspaceMemberState';
 import { Select } from '@/ui/input/components/Select';
-import { DateTimePickerHeader } from '@/ui/input/components/internal/date/components/DateTimePickerHeader';
+import {
+  DateTimePickerHeader,
+  TIME_PICKER_DROPDOWN_ID,
+} from '@/ui/input/components/internal/date/components/DateTimePickerHeader';
 import { RelativeDatePickerHeader } from '@/ui/input/components/internal/date/components/RelativeDatePickerHeader';
 import { getHighlightedDates } from '@/ui/input/components/internal/date/utils/getHighlightedDates';
 import { getMonthSelectOptions } from '@/ui/input/components/internal/date/utils/getMonthSelectOptions';
@@ -449,6 +452,7 @@ export const DateTimePicker = ({
 
   const { closeDropdown: closeDropdownMonthSelect } = useCloseDropdown();
   const { closeDropdown: closeDropdownYearSelect } = useCloseDropdown();
+  const { closeDropdown: closeDropdownTimePicker } = useCloseDropdown();
 
   const handleClear = () => {
     closeDropdowns();
@@ -458,6 +462,7 @@ export const DateTimePicker = ({
   const closeDropdowns = () => {
     closeDropdownYearSelect(MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID);
     closeDropdownMonthSelect(MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID);
+    closeDropdownTimePicker(TIME_PICKER_DROPDOWN_ID);
   };
 
   const handleClose = (newDate: Temporal.ZonedDateTime) => {

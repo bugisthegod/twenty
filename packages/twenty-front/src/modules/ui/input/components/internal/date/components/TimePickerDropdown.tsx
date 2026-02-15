@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import { t } from '@lingui/core/macro';
 import { useCallback, useEffect, useRef } from 'react';
 
 const StyledDropdownContainer = styled.div`
@@ -108,22 +109,40 @@ export const TimePickerDropdown = ({
   const minuteColumnRef = useRef<HTMLDivElement>(null);
 
   const scrollToSelected = useCallback(() => {
-    const itemHeight = 31.5;
-
     if (hourColumnRef.current !== null) {
-      const scrollTo = hour * itemHeight - 2 * itemHeight;
-      hourColumnRef.current.scrollTo({
-        top: Math.max(0, scrollTo),
-        behavior: 'smooth',
-      });
+      const container = hourColumnRef.current;
+      const selectedHourElement = container.children[hour] as
+        | HTMLElement
+        | undefined;
+
+      if (selectedHourElement != null) {
+        const targetTop =
+          selectedHourElement.offsetTop -
+          (container.clientHeight - selectedHourElement.offsetHeight) / 2;
+
+        container.scrollTo({
+          top: Math.max(0, targetTop),
+          behavior: 'smooth',
+        });
+      }
     }
 
     if (minuteColumnRef.current !== null) {
-      const scrollTo = minute * itemHeight - 2 * itemHeight;
-      minuteColumnRef.current.scrollTo({
-        top: Math.max(0, scrollTo),
-        behavior: 'smooth',
-      });
+      const container = minuteColumnRef.current;
+      const selectedMinuteElement = container.children[minute] as
+        | HTMLElement
+        | undefined;
+
+      if (selectedMinuteElement != null) {
+        const targetTop =
+          selectedMinuteElement.offsetTop -
+          (container.clientHeight - selectedMinuteElement.offsetHeight) / 2;
+
+        container.scrollTo({
+          top: Math.max(0, targetTop),
+          behavior: 'smooth',
+        });
+      }
     }
   }, [hour, minute]);
 
@@ -158,8 +177,11 @@ export const TimePickerDropdown = ({
         </StyledColumn>
       </StyledColumnsContainer>
       <StyledFooter>
-        <StyledNowButton onClick={onNow}>Now</StyledNowButton>
-        <StyledOkButton onClick={onClose}>OK</StyledOkButton>
+        <StyledNowButton
+          type="button"
+          onClick={onNow}
+        >{t`Now`}</StyledNowButton>
+        <StyledOkButton type="button" onClick={onClose}>{t`OK`}</StyledOkButton>
       </StyledFooter>
     </StyledDropdownContainer>
   );
