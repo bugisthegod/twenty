@@ -153,7 +153,7 @@ export const TimePickerDropdown = ({
   return (
     <StyledDropdownContainer>
       <StyledColumnsContainer>
-        <StyledColumn ref={hourColumnRef}>
+        <StyledColumn ref={hourColumnRef} data-testid="time-picker-hour-column">
           {Array.from({ length: 24 }, (_, i) => (
             <StyledColumnItem
               key={i}
@@ -164,7 +164,10 @@ export const TimePickerDropdown = ({
             </StyledColumnItem>
           ))}
         </StyledColumn>
-        <StyledColumn ref={minuteColumnRef}>
+        <StyledColumn
+          ref={minuteColumnRef}
+          data-testid="time-picker-minute-column"
+        >
           {Array.from({ length: 60 }, (_, i) => (
             <StyledColumnItem
               key={i}
