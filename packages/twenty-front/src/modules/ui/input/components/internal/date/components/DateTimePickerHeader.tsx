@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import { useCallback, useRef } from 'react';
+import { useCallback } from 'react';
 
 import { DateTimePickerInput } from '@/ui/input/components/internal/date/components/DateTimePickerInput';
 import { TimePickerDropdown } from '@/ui/input/components/internal/date/components/TimePickerDropdown';
@@ -100,12 +100,11 @@ export const DateTimePickerHeader = ({
   hideInput = false,
 }: DateTimePickerHeaderProps) => {
   const { closeDropdown } = useCloseDropdown();
-  const timeInputWrapperRef = useRef<HTMLDivElement>(null);
 
   const currentHour = date?.hour ?? 0;
   const currentMinute = date?.minute ?? 0;
 
-  const dropdownWidth = timeInputWrapperRef.current?.clientWidth ?? 156;
+  const dropdownWidth = 156;
 
   const formatTime = useCallback((hour: number, minute: number) => {
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
@@ -146,7 +145,7 @@ export const DateTimePickerHeader = ({
         </>
       )}
       <StyledTimeRow>
-        <StyledTimeInputWrapper ref={timeInputWrapperRef}>
+        <StyledTimeInputWrapper>
           <ClickOutsideListenerContext.Provider
             value={{
               excludedClickOutsideId: TIME_PICKER_DROPDOWN_ID,
@@ -181,7 +180,7 @@ export const DateTimePickerHeader = ({
           </ClickOutsideListenerContext.Provider>
         </StyledTimeInputWrapper>
         <StyledRightControls>
-          <LightIconButton Icon={IconCalendar} size="medium" disabled />
+          <LightIconButton Icon={IconCalendar} size="medium" />
           <StyledNavigationButtons>
             <LightIconButton
               Icon={IconChevronLeft}
