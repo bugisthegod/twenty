@@ -26,13 +26,7 @@ import {
   useFloating,
 } from '@floating-ui/react';
 import { t } from '@lingui/core/macro';
-import {
-  lazy,
-  Suspense,
-  useLayoutEffect,
-  useState,
-  type ComponentType,
-} from 'react';
+import { lazy, Suspense, useEffect, useState, type ComponentType } from 'react';
 import type { ReactDatePickerProps as ReactDatePickerLibProps } from 'react-datepicker';
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import { useRecoilValue } from 'recoil';
@@ -56,6 +50,11 @@ export const MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID =
 export const MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID =
   'date-picker-month-and-year-dropdown-year-select';
 
+export const YEARS_SELECT_OPTIONS = Array.from(
+  { length: 200 },
+  (_, i) => new Date().getFullYear() + 50 - i,
+).map((year) => ({ label: year.toString(), value: year }));
+
 const StyledOuterWrapper = styled.div`
   position: relative;
   display: flex;
@@ -77,11 +76,6 @@ const StyledMonthYearSelector = styled.div`
   width: 160px;
   z-index: ${RootStackingContextZIndices.DropdownPortalBelowModal};
 `;
-
-const years = Array.from(
-  { length: 200 },
-  (_, i) => new Date().getFullYear() + 50 - i,
-).map((year) => ({ label: year.toString(), value: year }));
 
 const StyledContainer = styled.div<{
   calendarDisabled?: boolean;
@@ -423,7 +417,7 @@ export const DateTimePicker = ({
     whileElementsMounted: autoUpdate,
   });
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (isDefined(dateToUse)) {
       setFloatingMonth(dateToUse.month);
       setFloatingYear(dateToUse.year);
@@ -657,7 +651,7 @@ export const DateTimePicker = ({
                   handleChangeYear(year);
                 }}
                 value={floatingYear}
-                options={years}
+                options={YEARS_SELECT_OPTIONS}
                 fullWidth={false}
                 dropdownWidth={160}
               />

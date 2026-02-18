@@ -2,9 +2,9 @@ import styled from '@emotion/styled';
 import { type Ref, useEffect } from 'react';
 import { useIMask } from 'react-imask';
 
-import { TimeFormat } from '@/localization/constants/TimeFormat';
 import { useDateTimeFormat } from '@/localization/hooks/useDateTimeFormat';
 import { DateTimePickerInput } from '@/ui/input/components/internal/date/components/DateTimePickerInput';
+import { useTimeInput } from '@/ui/input/components/internal/date/hooks/useTimeInput';
 import { getTimeBlocks } from '@/ui/input/components/internal/date/utils/getTimeBlocks';
 import { getTimeMask } from '@/ui/input/components/internal/date/utils/getTimeMask';
 import { t } from '@lingui/core/macro';
@@ -34,15 +34,15 @@ const StyledTimeInputWrapper = styled.div`
 `;
 
 const StyledTimeInputContainer = styled.div`
+  align-items: center;
+  background-color: ${({ theme }) => theme.background.transparent.lighter};
+  border: 1px solid ${({ theme }) => theme.border.color.medium};
+  border-radius: ${({ theme }) => theme.border.radius.sm};
   box-sizing: border-box;
   display: flex;
-  align-items: center;
   gap: ${({ theme }) => theme.spacing(1)};
-  background: ${({ theme }) => theme.background.tertiary};
-  border-radius: ${({ theme }) => theme.border.radius.sm};
   height: ${({ theme }) => theme.spacing(8)};
-  padding: ${({ theme }) => theme.spacing(2)};
-  border: 1px solid ${({ theme }) => theme.border.color.light};
+  padding: 0 ${({ theme }) => theme.spacing(2)};
   transition: border-color 0.15s ease;
 
   &:hover {
@@ -61,13 +61,22 @@ const StyledTimeInput = styled.input`
   background: transparent;
   border: none;
   color: ${({ theme }) => theme.font.color.primary};
-  cursor: text;
-  font-family: inherit;
+  flex: 1;
+  font-family: ${({ theme }) => theme.font.family};
   font-size: ${({ theme }) => theme.font.size.md};
-  font-weight: ${({ theme }) => theme.font.weight.medium};
+  font-weight: ${({ theme }) => theme.font.weight.regular};
   letter-spacing: 0.05em;
   outline: none;
   width: 100%;
+
+  &::placeholder {
+    color: ${({ theme }) => theme.font.color.light};
+    font-weight: ${({ theme }) => theme.font.weight.medium};
+  }
+
+  &:disabled {
+    color: ${({ theme }) => theme.font.color.tertiary};
+  }
 `;
 
 const StyledRightControls = styled.div`
@@ -99,22 +108,6 @@ type DateTimePickerHeaderProps = {
   calendarButtonRef?: Ref<HTMLDivElement>;
 };
 
-const formatTimeForMask = (
-  hour: number,
-  minute: number,
-  isHour12: boolean,
-): string => {
-  const hh = isHour12
-    ? (hour % 12 || 12).toString().padStart(2, '0')
-    : hour.toString().padStart(2, '0');
-  const mm = minute.toString().padStart(2, '0');
-  if (isHour12) {
-    const amPm = hour >= 12 ? 'PM' : 'AM';
-    return `${hh}:${mm} ${amPm}`;
-  }
-  return `${hh}:${mm}`;
-};
-
 export const DateTimePickerHeader = ({
   date,
   onChange,
@@ -127,7 +120,7 @@ export const DateTimePickerHeader = ({
   calendarButtonRef,
 }: DateTimePickerHeaderProps) => {
   const { timeFormat } = useDateTimeFormat();
-  const isHour12 = timeFormat === TimeFormat.HOUR_12;
+  const { formatTime, parseTime, isHour12 } = useTimeInput(timeFormat);
 
   const { ref: iMaskRef, setValue } = useIMask(
     {
@@ -138,43 +131,28 @@ export const DateTimePickerHeader = ({
     },
     {
       defaultValue: isDefined(date)
-        ? formatTimeForMask(date.hour, date.minute, isHour12)
+        ? formatTime(date.hour, date.minute)
         : undefined,
       onComplete: (value) => {
         if (!date) return;
 
-        const [hoursStr, rest] = value.split(':');
-        const hours = parseInt(hoursStr, 10);
-
-        if (isHour12) {
-          const [minutesStr, amPmStr] = rest.trim().split(/\s+/);
-          const minutes = parseInt(minutesStr, 10);
-          if (isNaN(hours) || isNaN(minutes)) return;
-
-          const isPM = amPmStr?.toUpperCase() === 'PM';
-          const hour24 = isPM
-            ? hours === 12
-              ? 12
-              : hours + 12
-            : hours === 12
-              ? 0
-              : hours;
-
-          onChange?.(date.with({ hour: hour24, minute: minutes }));
-        } else {
-          const minutes = parseInt(rest, 10);
-          if (isNaN(hours) || isNaN(minutes)) return;
-          onChange?.(date.with({ hour: hours, minute: minutes }));
+        const parsedTime = parseTime(value);
+        if (!parsedTime) {
+          return;
         }
+
+        onChange?.(
+          date.with({ hour: parsedTime.hour, minute: parsedTime.minute }),
+        );
       },
     },
   );
 
   useEffect(() => {
     if (isDefined(date)) {
-      setValue(formatTimeForMask(date.hour, date.minute, isHour12));
+      setValue(formatTime(date.hour, date.minute));
     }
-  }, [date, isHour12, setValue]);
+  }, [date, formatTime, setValue]);
 
   const timeInputRef = iMaskRef as React.Ref<HTMLInputElement>;
 

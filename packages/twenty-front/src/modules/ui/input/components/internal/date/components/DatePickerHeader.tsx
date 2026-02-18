@@ -10,6 +10,7 @@ import { LightIconButton } from 'twenty-ui/input';
 import {
   MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID,
   MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID,
+  YEARS_SELECT_OPTIONS,
 } from './DateTimePicker';
 
 import { currentWorkspaceMemberState } from '@/auth/states/currentWorkspaceMemberState';
@@ -28,11 +29,6 @@ const StyledCustomDatePickerHeader = styled.div`
 
   gap: ${({ theme }) => theme.spacing(1)};
 `;
-
-const years = Array.from(
-  { length: 200 },
-  (_, i) => new Date().getFullYear() + 50 - i,
-).map((year) => ({ label: year.toString(), value: year }));
 
 type DatePickerHeaderProps = {
   date: string | null;
@@ -88,7 +84,7 @@ export const DatePickerHeader = ({
             dropdownId={MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID}
             onChange={onChangeYear}
             value={dateParsed?.year}
-            options={years}
+            options={YEARS_SELECT_OPTIONS}
             fullWidth
           />
         </ClickOutsideListenerContext.Provider>
