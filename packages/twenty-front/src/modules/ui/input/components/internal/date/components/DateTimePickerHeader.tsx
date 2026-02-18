@@ -1,13 +1,15 @@
 import styled from '@emotion/styled';
-import { useCallback } from 'react';
+import { type Ref, useEffect } from 'react';
+import { useIMask } from 'react-imask';
 
+import { TimeFormat } from '@/localization/constants/TimeFormat';
+import { useDateTimeFormat } from '@/localization/hooks/useDateTimeFormat';
 import { DateTimePickerInput } from '@/ui/input/components/internal/date/components/DateTimePickerInput';
-import { TimePickerDropdown } from '@/ui/input/components/internal/date/components/TimePickerDropdown';
-import { Dropdown } from '@/ui/layout/dropdown/components/Dropdown';
-import { DropdownContent } from '@/ui/layout/dropdown/components/DropdownContent';
-import { useCloseDropdown } from '@/ui/layout/dropdown/hooks/useCloseDropdown';
-import { ClickOutsideListenerContext } from '@/ui/utilities/pointer-event/contexts/ClickOutsideListenerContext';
-import { Temporal } from 'temporal-polyfill';
+import { getTimeBlocks } from '@/ui/input/components/internal/date/utils/getTimeBlocks';
+import { getTimeMask } from '@/ui/input/components/internal/date/utils/getTimeMask';
+import { t } from '@lingui/core/macro';
+import { type Temporal } from 'temporal-polyfill';
+import { isDefined } from 'twenty-shared/utils';
 import {
   IconCalendar,
   IconChevronLeft,
@@ -15,8 +17,6 @@ import {
   IconClock,
 } from 'twenty-ui/display';
 import { LightIconButton } from 'twenty-ui/input';
-
-export const TIME_PICKER_DROPDOWN_ID = 'date-time-picker-time-dropdown';
 
 const StyledTimeRow = styled.div`
   align-items: center;
@@ -34,13 +34,14 @@ const StyledTimeInputWrapper = styled.div`
 `;
 
 const StyledTimeInputContainer = styled.div`
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: ${({ theme }) => theme.spacing(1)};
   background: ${({ theme }) => theme.background.tertiary};
   border-radius: ${({ theme }) => theme.border.radius.sm};
-  padding: ${({ theme }) => theme.spacing(1)} ${({ theme }) => theme.spacing(2)};
-  cursor: pointer;
+  height: ${({ theme }) => theme.spacing(8)};
+  padding: ${({ theme }) => theme.spacing(2)};
   border: 1px solid ${({ theme }) => theme.border.color.light};
   transition: border-color 0.15s ease;
 
@@ -56,11 +57,17 @@ const StyledClockIcon = styled.div`
   flex-shrink: 0;
 `;
 
-const StyledTimeDisplay = styled.span`
+const StyledTimeInput = styled.input`
+  background: transparent;
+  border: none;
   color: ${({ theme }) => theme.font.color.primary};
+  cursor: text;
+  font-family: inherit;
   font-size: ${({ theme }) => theme.font.size.md};
   font-weight: ${({ theme }) => theme.font.weight.medium};
-  user-select: none;
+  letter-spacing: 0.05em;
+  outline: none;
+  width: 100%;
 `;
 
 const StyledRightControls = styled.div`
@@ -88,6 +95,24 @@ type DateTimePickerHeaderProps = {
   prevMonthButtonDisabled: boolean;
   nextMonthButtonDisabled: boolean;
   hideInput?: boolean;
+  onToggleMonthYearSelector?: () => void;
+  calendarButtonRef?: Ref<HTMLDivElement>;
+};
+
+const formatTimeForMask = (
+  hour: number,
+  minute: number,
+  isHour12: boolean,
+): string => {
+  const hh = isHour12
+    ? (hour % 12 || 12).toString().padStart(2, '0')
+    : hour.toString().padStart(2, '0');
+  const mm = minute.toString().padStart(2, '0');
+  if (isHour12) {
+    const amPm = hour >= 12 ? 'PM' : 'AM';
+    return `${hh}:${mm} ${amPm}`;
+  }
+  return `${hh}:${mm}`;
 };
 
 export const DateTimePickerHeader = ({
@@ -98,43 +123,60 @@ export const DateTimePickerHeader = ({
   prevMonthButtonDisabled,
   nextMonthButtonDisabled,
   hideInput = false,
+  onToggleMonthYearSelector,
+  calendarButtonRef,
 }: DateTimePickerHeaderProps) => {
-  const { closeDropdown } = useCloseDropdown();
+  const { timeFormat } = useDateTimeFormat();
+  const isHour12 = timeFormat === TimeFormat.HOUR_12;
 
-  const currentHour = date?.hour ?? 0;
-  const currentMinute = date?.minute ?? 0;
-
-  const dropdownWidth = 156;
-
-  const formatTime = useCallback((hour: number, minute: number) => {
-    return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-  }, []);
-
-  const handleHourChange = useCallback(
-    (hour: number) => {
-      if (!date) return;
-      onChange?.(date.with({ hour }));
+  const { ref: iMaskRef, setValue } = useIMask(
+    {
+      mask: getTimeMask(timeFormat),
+      blocks: getTimeBlocks(timeFormat),
+      lazy: false,
+      autofix: true,
     },
-    [date, onChange],
+    {
+      defaultValue: isDefined(date)
+        ? formatTimeForMask(date.hour, date.minute, isHour12)
+        : undefined,
+      onComplete: (value) => {
+        if (!date) return;
+
+        const [hoursStr, rest] = value.split(':');
+        const hours = parseInt(hoursStr, 10);
+
+        if (isHour12) {
+          const [minutesStr, amPmStr] = rest.trim().split(/\s+/);
+          const minutes = parseInt(minutesStr, 10);
+          if (isNaN(hours) || isNaN(minutes)) return;
+
+          const isPM = amPmStr?.toUpperCase() === 'PM';
+          const hour24 = isPM
+            ? hours === 12
+              ? 12
+              : hours + 12
+            : hours === 12
+              ? 0
+              : hours;
+
+          onChange?.(date.with({ hour: hour24, minute: minutes }));
+        } else {
+          const minutes = parseInt(rest, 10);
+          if (isNaN(hours) || isNaN(minutes)) return;
+          onChange?.(date.with({ hour: hours, minute: minutes }));
+        }
+      },
+    },
   );
 
-  const handleMinuteChange = useCallback(
-    (minute: number) => {
-      if (!date) return;
-      onChange?.(date.with({ minute }));
-    },
-    [date, onChange],
-  );
+  useEffect(() => {
+    if (isDefined(date)) {
+      setValue(formatTimeForMask(date.hour, date.minute, isHour12));
+    }
+  }, [date, isHour12, setValue]);
 
-  const handleNow = useCallback(() => {
-    if (!date) return;
-    const now = Temporal.Now.zonedDateTimeISO(date.timeZoneId);
-    onChange?.(date.with({ hour: now.hour, minute: now.minute }));
-  }, [date, onChange]);
-
-  const handleCloseDropdown = useCallback(() => {
-    closeDropdown(TIME_PICKER_DROPDOWN_ID);
-  }, [closeDropdown]);
+  const timeInputRef = iMaskRef as React.Ref<HTMLInputElement>;
 
   return (
     <>
@@ -146,41 +188,26 @@ export const DateTimePickerHeader = ({
       )}
       <StyledTimeRow>
         <StyledTimeInputWrapper>
-          <ClickOutsideListenerContext.Provider
-            value={{
-              excludedClickOutsideId: TIME_PICKER_DROPDOWN_ID,
-            }}
-          >
-            <Dropdown
-              dropdownId={TIME_PICKER_DROPDOWN_ID}
-              dropdownPlacement="bottom-start"
-              clickableComponent={
-                <StyledTimeInputContainer>
-                  <StyledClockIcon>
-                    <IconClock size={16} />
-                  </StyledClockIcon>
-                  <StyledTimeDisplay>
-                    {formatTime(currentHour, currentMinute)}
-                  </StyledTimeDisplay>
-                </StyledTimeInputContainer>
-              }
-              dropdownComponents={
-                <DropdownContent widthInPixels={dropdownWidth}>
-                  <TimePickerDropdown
-                    hour={currentHour}
-                    minute={currentMinute}
-                    onHourChange={handleHourChange}
-                    onMinuteChange={handleMinuteChange}
-                    onNow={handleNow}
-                    onClose={handleCloseDropdown}
-                  />
-                </DropdownContent>
-              }
+          <StyledTimeInputContainer>
+            <StyledClockIcon>
+              <IconClock size={16} />
+            </StyledClockIcon>
+            <StyledTimeInput
+              type="text"
+              ref={timeInputRef}
+              placeholder={isHour12 ? 'HH:mm AA' : 'HH:mm'}
             />
-          </ClickOutsideListenerContext.Provider>
+          </StyledTimeInputContainer>
         </StyledTimeInputWrapper>
         <StyledRightControls>
-          <LightIconButton Icon={IconCalendar} size="medium" />
+          <div ref={calendarButtonRef}>
+            <LightIconButton
+              Icon={IconCalendar}
+              size="medium"
+              onClick={onToggleMonthYearSelector}
+              aria-label={t`Select month and year`}
+            />
+          </div>
           <StyledNavigationButtons>
             <LightIconButton
               Icon={IconChevronLeft}

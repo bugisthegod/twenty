@@ -9,7 +9,6 @@ import {
   MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID,
   MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID,
 } from '@/ui/input/components/internal/date/components/DateTimePicker';
-import { TIME_PICKER_DROPDOWN_ID } from '@/ui/input/components/internal/date/components/DateTimePickerHeader';
 import { DateTimePickerInput } from '@/ui/input/components/internal/date/components/DateTimePickerInput';
 import { useUserTimezone } from '@/ui/input/components/internal/date/hooks/useUserTimezone';
 
@@ -107,7 +106,6 @@ export const FormDateTimeFieldInput = ({
 
   const { closeDropdown: closeDropdownMonthSelect } = useCloseDropdown();
   const { closeDropdown: closeDropdownYearSelect } = useCloseDropdown();
-  const { closeDropdown: closeDropdownTimePicker } = useCloseDropdown();
 
   const displayDatePicker =
     draftValue.type === 'static' && draftValue.mode === 'edit';
@@ -120,14 +118,12 @@ export const FormDateTimeFieldInput = ({
 
       closeDropdownYearSelect(MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID);
       closeDropdownMonthSelect(MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID);
-      closeDropdownTimePicker(TIME_PICKER_DROPDOWN_ID);
       handlePickerClickOutside();
     },
     enabled: displayDatePicker,
     excludedClickOutsideIds: [
       MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID,
       MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID,
-      TIME_PICKER_DROPDOWN_ID,
     ],
   });
 

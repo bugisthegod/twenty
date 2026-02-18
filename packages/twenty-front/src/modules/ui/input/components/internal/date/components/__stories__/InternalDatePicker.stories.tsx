@@ -35,15 +35,23 @@ export const Default: Story = {};
 
 export const WithOpenMonthSelect: Story = {
   play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
     const body = within(canvasElement.ownerDocument.body);
 
-    // Increased timeout to account for lazy-loaded react-datepicker on slower CI runners
+    // Wait for date picker to load and click calendar icon to open month/year selector
+    const calendarButton = await canvas.findByRole(
+      'button',
+      { name: 'Select month and year' },
+      { timeout: 10000 },
+    );
+    await userEvent.click(calendarButton);
+
+    // Now find and click the month select
     const monthSelect = await body.findByText(
       'January',
       {},
       { timeout: 10000 },
     );
-
     await userEvent.click(monthSelect);
 
     for (const monthLabel of [
@@ -70,11 +78,18 @@ export const WithOpenMonthSelect: Story = {
 
 export const WithOpenYearSelect: Story = {
   play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
     const body = within(canvasElement.ownerDocument.body);
 
-    // Increased timeout to account for lazy-loaded react-datepicker on slower CI runners
-    const yearSelect = await body.findByText('2023', {}, { timeout: 10000 });
+    // Wait for date picker to load and click calendar icon to open month/year selector
+    const calendarButton = await canvas.findByRole(
+      'button',
+      { name: 'Select month and year' },
+      { timeout: 10000 },
+    );
+    await userEvent.click(calendarButton);
 
+    const yearSelect = await body.findByText('2023', {}, { timeout: 10000 });
     await userEvent.click(yearSelect);
 
     for (const yearLabel of ['2024', '2025', '2026']) {
@@ -87,47 +102,17 @@ export const WithOpenYearSelect: Story = {
   },
 };
 
-export const WithOpenTimePicker: Story = {
+export const WithTimeInput: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const body = within(canvasElement.ownerDocument.body);
 
     // Increased timeout to account for lazy-loaded react-datepicker on slower CI runners
-    const timeInput = await canvas.findByText('02:00', {}, { timeout: 10000 });
-
-    await userEvent.click(timeInput);
-
-    const nowButton = await body.findByText('Now');
-    expect(nowButton).toBeInTheDocument();
-
-    const hourColumn = await body.findByTestId(
-      'time-picker-hour-column',
-      {},
-      { timeout: 10000 },
-    );
-    const minuteColumn = await body.findByTestId(
-      'time-picker-minute-column',
+    const timeInput = await canvas.findByPlaceholderText(
+      /HH:mm/,
       {},
       { timeout: 10000 },
     );
 
-    const hourScope = within(hourColumn);
-    for (const hourLabel of ['00', '01', '03', '04', '05']) {
-      expect(await hourScope.findByText(hourLabel)).toBeInTheDocument();
-    }
-
-    const minuteScope = within(minuteColumn);
-    for (const minuteLabel of ['30', '31', '32', '33', '34']) {
-      expect(await minuteScope.findByText(minuteLabel)).toBeInTheDocument();
-    }
-
-    await userEvent.click(await hourScope.findByText('14'));
-    await userEvent.click(await minuteScope.findByText('14'));
-
-    const okButton = await body.findByText('OK');
-    expect(okButton).toBeInTheDocument();
-    await userEvent.click(okButton);
-
-    expect(await canvas.findByText('14:14')).toBeInTheDocument();
+    expect(timeInput).toBeInTheDocument();
   },
 };

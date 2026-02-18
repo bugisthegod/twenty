@@ -3,7 +3,6 @@ import {
   MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID,
   MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID,
 } from '@/ui/input/components/internal/date/components/DateTimePicker';
-import { TIME_PICKER_DROPDOWN_ID } from '@/ui/input/components/internal/date/components/DateTimePickerHeader';
 import { Dropdown } from '@/ui/layout/dropdown/components/Dropdown';
 import { ViewBarFilterDropdownIds } from '@/views/constants/ViewBarFilterDropdownIds';
 
@@ -55,7 +54,6 @@ export const ViewBarFilterDropdown = () => {
       excludedClickOutsideIds={[
         MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID,
         MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID,
-        TIME_PICKER_DROPDOWN_ID,
       ]}
     />
   );

@@ -5,12 +5,11 @@ import {
   type RelativeDateFilter,
 } from 'twenty-shared/utils';
 
+import { RootStackingContextZIndices } from '@/ui/layout/constants/RootStackingContextZIndices';
+
 import { currentWorkspaceMemberState } from '@/auth/states/currentWorkspaceMemberState';
 import { Select } from '@/ui/input/components/Select';
-import {
-  DateTimePickerHeader,
-  TIME_PICKER_DROPDOWN_ID,
-} from '@/ui/input/components/internal/date/components/DateTimePickerHeader';
+import { DateTimePickerHeader } from '@/ui/input/components/internal/date/components/DateTimePickerHeader';
 import { RelativeDatePickerHeader } from '@/ui/input/components/internal/date/components/RelativeDatePickerHeader';
 import { getHighlightedDates } from '@/ui/input/components/internal/date/utils/getHighlightedDates';
 import { getMonthSelectOptions } from '@/ui/input/components/internal/date/utils/getMonthSelectOptions';
@@ -74,9 +73,9 @@ const StyledMonthYearSelector = styled.div`
   display: flex;
   flex-direction: column;
   gap: ${({ theme }) => theme.spacing(1)};
-  padding: ${({ theme }) => theme.spacing(2)};
+  padding: ${({ theme }) => theme.spacing(1)};
   width: 160px;
-  z-index: 31;
+  z-index: ${RootStackingContextZIndices.DropdownPortalBelowModal};
 `;
 
 const years = Array.from(
@@ -412,12 +411,13 @@ export const DateTimePicker = ({
   const [floatingYear, setFloatingYear] = useState(
     dateToUse?.year ?? new Date().getFullYear(),
   );
+  const [showMonthYearSelector, setShowMonthYearSelector] = useState(false);
 
   const { refs, floatingStyles } = useFloating({
-    placement: 'right-start',
+    placement: 'bottom-start',
     middleware: [
       offset(8),
-      flip({ fallbackPlacements: ['left-start'] }),
+      flip({ fallbackPlacements: ['bottom-end', 'top-start', 'top-end'] }),
       shift({ padding: 8 }),
     ],
     whileElementsMounted: autoUpdate,
@@ -452,7 +452,6 @@ export const DateTimePicker = ({
 
   const { closeDropdown: closeDropdownMonthSelect } = useCloseDropdown();
   const { closeDropdown: closeDropdownYearSelect } = useCloseDropdown();
-  const { closeDropdown: closeDropdownTimePicker } = useCloseDropdown();
 
   const handleClear = () => {
     closeDropdowns();
@@ -462,7 +461,11 @@ export const DateTimePicker = ({
   const closeDropdowns = () => {
     closeDropdownYearSelect(MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID);
     closeDropdownMonthSelect(MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID);
-    closeDropdownTimePicker(TIME_PICKER_DROPDOWN_ID);
+    setShowMonthYearSelector(false);
+  };
+
+  const toggleMonthYearSelector = () => {
+    setShowMonthYearSelector((prev) => !prev);
   };
 
   const handleClose = (newDate: Temporal.ZonedDateTime) => {
@@ -540,7 +543,7 @@ export const DateTimePicker = ({
     convertFirstDayOfTheWeekToCalendarStartDayNumber(userFirstDayOfTheWeek);
 
   return (
-    <StyledOuterWrapper ref={refs.setReference}>
+    <StyledOuterWrapper>
       <StyledContainer calendarDisabled={isRelative}>
         <Suspense
           fallback={
@@ -600,6 +603,8 @@ export const DateTimePicker = ({
                   prevMonthButtonDisabled={prevMonthButtonDisabled}
                   nextMonthButtonDisabled={nextMonthButtonDisabled}
                   hideInput={hideHeaderInput}
+                  onToggleMonthYearSelector={toggleMonthYearSelector}
+                  calendarButtonRef={refs.setReference}
                 />
               )
             }
@@ -616,7 +621,7 @@ export const DateTimePicker = ({
           </>
         )}
       </StyledContainer>
-      {!isRelative && (
+      {!isRelative && showMonthYearSelector && (
         <FloatingPortal>
           <StyledMonthYearSelector
             ref={refs.setFloating}
