@@ -7,7 +7,6 @@ import { isDefined } from 'twenty-shared/utils';
 export const useRegisterInputEvents = <T>({
   inputRef,
   copyRef,
-  excludedClickOutsideIds,
   inputValue,
   onEscape,
   onEnter,
@@ -18,7 +17,6 @@ export const useRegisterInputEvents = <T>({
 }: {
   inputRef: React.RefObject<any>;
   copyRef?: React.RefObject<any>;
-  excludedClickOutsideIds?: string[];
   inputValue: T;
   onEscape?: (inputValue: T) => void;
   onEnter?: (inputValue: T) => void;
@@ -29,7 +27,6 @@ export const useRegisterInputEvents = <T>({
 }) => {
   useListenClickOutside({
     refs: [inputRef, copyRef].filter(isDefined),
-    excludedClickOutsideIds,
     callback: (event) => {
       onClickOutside?.(event, inputValue);
     },

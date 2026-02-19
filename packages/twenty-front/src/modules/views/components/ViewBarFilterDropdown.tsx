@@ -1,8 +1,4 @@
 import { useResetFilterDropdown } from '@/object-record/object-filter-dropdown/hooks/useResetFilterDropdown';
-import {
-  MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID,
-  MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID,
-} from '@/ui/input/components/internal/date/components/DateTimePicker';
 import { Dropdown } from '@/ui/layout/dropdown/components/Dropdown';
 import { ViewBarFilterDropdownIds } from '@/views/constants/ViewBarFilterDropdownIds';
 
@@ -51,10 +47,6 @@ export const ViewBarFilterDropdown = () => {
       dropdownComponents={<ViewBarFilterDropdownContent />}
       dropdownOffset={{ y: 8 }}
       onClickOutside={handleDropdownClickOutside}
-      excludedClickOutsideIds={[
-        MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID,
-        MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID,
-      ]}
     />
   );
 };

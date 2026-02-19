@@ -105,10 +105,6 @@ export const DateTimeInput = ({
   useRegisterInputEvents({
     focusId: instanceId,
     inputRef: wrapperRef,
-    excludedClickOutsideIds: [
-      MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID,
-      MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID,
-    ],
     inputValue: internalZonedDateTime,
     onEnter: handleEnter,
     onEscape: handleEscape,

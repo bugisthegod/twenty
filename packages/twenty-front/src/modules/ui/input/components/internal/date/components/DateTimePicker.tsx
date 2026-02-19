@@ -610,6 +610,7 @@ export const DateTimePicker = ({
             ref={refs.setFloating}
             style={floatingStyles}
             data-click-outside-id={MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID}
+            data-globally-prevent-click-outside="true"
           >
             <ClickOutsideListenerContext.Provider
               value={{

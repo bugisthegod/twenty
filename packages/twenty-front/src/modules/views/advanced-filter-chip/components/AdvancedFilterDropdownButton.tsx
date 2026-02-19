@@ -3,10 +3,6 @@ import { Dropdown } from '@/ui/layout/dropdown/components/Dropdown';
 import { AdvancedFilterRootRecordFilterGroup } from '@/object-record/advanced-filter/components/AdvancedFilterRootRecordFilterGroup';
 import { useSetAdvancedFilterDropdownStates } from '@/object-record/advanced-filter/hooks/useSetAdvancedFilterDropdownAllRowsStates';
 import { rootLevelRecordFilterGroupComponentSelector } from '@/object-record/advanced-filter/states/rootLevelRecordFilterGroupComponentSelector';
-import {
-  MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID,
-  MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID,
-} from '@/ui/input/components/internal/date/components/DateTimePicker';
 import { useRecoilComponentValue } from '@/ui/utilities/state/component-state/hooks/useRecoilComponentValue';
 import { AdvancedFilterChip } from '@/views/advanced-filter-chip/components/AdvancedFilterChip';
 import { ViewBarFilterDropdownIds } from '@/views/constants/ViewBarFilterDropdownIds';
@@ -36,10 +32,6 @@ export const AdvancedFilterDropdownButton = () => {
       dropdownOffset={{ y: 8, x: 0 }}
       dropdownPlacement="bottom-start"
       onOpen={handleOpenAdvancedFilterDropdown}
-      excludedClickOutsideIds={[
-        MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID,
-        MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID,
-      ]}
     />
   );
 };
