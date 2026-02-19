@@ -26,7 +26,7 @@ import {
   useFloating,
 } from '@floating-ui/react';
 import { t } from '@lingui/core/macro';
-import { lazy, Suspense, useEffect, useState, type ComponentType } from 'react';
+import { lazy, Suspense, useState, type ComponentType } from 'react';
 import type { ReactDatePickerProps as ReactDatePickerLibProps } from 'react-datepicker';
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
 import { useRecoilValue } from 'recoil';
@@ -401,10 +401,6 @@ export const DateTimePicker = ({
   const dateToUse =
     date ?? Temporal.Now.zonedDateTimeISO(timeZone ?? userTimezone);
 
-  const [floatingMonth, setFloatingMonth] = useState(dateToUse?.month ?? 1);
-  const [floatingYear, setFloatingYear] = useState(
-    dateToUse?.year ?? new Date().getFullYear(),
-  );
   const [showMonthYearSelector, setShowMonthYearSelector] = useState(false);
 
   const { refs, floatingStyles } = useFloating({
@@ -416,13 +412,6 @@ export const DateTimePicker = ({
     ],
     whileElementsMounted: autoUpdate,
   });
-
-  useEffect(() => {
-    if (isDefined(dateToUse)) {
-      setFloatingMonth(dateToUse.month);
-      setFloatingYear(dateToUse.year);
-    }
-  }, [dateToUse]);
 
   const { getShiftedDateToSystemTimeZone } =
     useGetShiftedDateToSystemTimeZone();
@@ -631,10 +620,9 @@ export const DateTimePicker = ({
                 dropdownId={MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID}
                 options={getMonthSelectOptions(userLocale)}
                 onChange={(month: number) => {
-                  setFloatingMonth(month);
                   handleChangeMonth(month);
                 }}
-                value={floatingMonth}
+                value={dateToUse.month}
                 fullWidth={false}
                 dropdownWidth={160}
               />
@@ -647,10 +635,9 @@ export const DateTimePicker = ({
               <Select
                 dropdownId={MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID}
                 onChange={(year: number) => {
-                  setFloatingYear(year);
                   handleChangeYear(year);
                 }}
-                value={floatingYear}
+                value={dateToUse.year}
                 options={YEARS_SELECT_OPTIONS}
                 fullWidth={false}
                 dropdownWidth={160}
