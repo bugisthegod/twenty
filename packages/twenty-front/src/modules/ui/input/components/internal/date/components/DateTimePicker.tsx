@@ -23,6 +23,7 @@ import {
   FloatingPortal,
   offset,
   shift,
+  useDismiss,
   useFloating,
 } from '@floating-ui/react';
 import { t } from '@lingui/core/macro';
@@ -403,7 +404,23 @@ export const DateTimePicker = ({
 
   const [showMonthYearSelector, setShowMonthYearSelector] = useState(false);
 
-  const { refs, floatingStyles } = useFloating({
+  const { closeDropdown: closeDropdownMonthSelect } = useCloseDropdown();
+  const { closeDropdown: closeDropdownYearSelect } = useCloseDropdown();
+
+  const closeMonthYearInnerDropdowns = () => {
+    closeDropdownYearSelect(MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID);
+    closeDropdownMonthSelect(MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID);
+  };
+
+  const { refs, floatingStyles, context } = useFloating({
+    open: showMonthYearSelector,
+    onOpenChange: (isOpen) => {
+      if (!isOpen) {
+        closeMonthYearInnerDropdowns();
+      }
+
+      setShowMonthYearSelector(isOpen);
+    },
     placement: 'bottom-start',
     middleware: [
       offset(8),
@@ -411,6 +428,10 @@ export const DateTimePicker = ({
       shift({ padding: 8 }),
     ],
     whileElementsMounted: autoUpdate,
+  });
+
+  const dismiss = useDismiss(context, {
+    outsidePress: true,
   });
 
   const { getShiftedDateToSystemTimeZone } =
@@ -433,17 +454,13 @@ export const DateTimePicker = ({
     return { zonedDateTime };
   };
 
-  const { closeDropdown: closeDropdownMonthSelect } = useCloseDropdown();
-  const { closeDropdown: closeDropdownYearSelect } = useCloseDropdown();
-
   const handleClear = () => {
     closeDropdowns();
     onClear?.();
   };
 
   const closeDropdowns = () => {
-    closeDropdownYearSelect(MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID);
-    closeDropdownMonthSelect(MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID);
+    closeMonthYearInnerDropdowns();
     setShowMonthYearSelector(false);
   };
 
@@ -609,6 +626,7 @@ export const DateTimePicker = ({
           <StyledMonthYearSelector
             ref={refs.setFloating}
             style={floatingStyles}
+            onPointerDownCapture={dismiss.floating?.onPointerDownCapture}
             data-click-outside-id={MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID}
             data-globally-prevent-click-outside="true"
           >
