@@ -170,6 +170,7 @@ export const ClickOutside: Story = {
 
     const emptyDiv = canvas.getByTestId('data-field-input-click-outside-div');
     await userEvent.click(emptyDiv);
+    await userEvent.click(emptyDiv);
 
     await expect(handleClickoutsideMocked).toHaveBeenCalledTimes(1);
   },
@@ -192,6 +193,7 @@ export const Escape: Story = {
     await body.findByText('January', {}, { timeout: 10000 });
 
     await userEvent.keyboard('{escape}');
+    await userEvent.keyboard('{escape}');
 
     await expect(handleEscapeMocked).toHaveBeenCalledTimes(1);
   },
@@ -213,6 +215,7 @@ export const Enter: Story = {
     // Increased timeout to account for lazy-loaded react-datepicker on slower CI runners
     await body.findByText('January', {}, { timeout: 10000 });
 
+    await userEvent.keyboard('{enter}');
     await userEvent.keyboard('{enter}');
 
     await expect(handleEnterMocked).toHaveBeenCalledTimes(1);

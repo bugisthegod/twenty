@@ -5,32 +5,19 @@ import {
   type RelativeDateFilter,
 } from 'twenty-shared/utils';
 
-import { RootStackingContextZIndices } from '@/ui/layout/constants/RootStackingContextZIndices';
-
-import { currentWorkspaceMemberState } from '@/auth/states/currentWorkspaceMemberState';
-import { Select } from '@/ui/input/components/Select';
-import { DateTimePickerHeader } from '@/ui/input/components/internal/date/components/DateTimePickerHeader';
+import {
+  DATE_TIME_PICKER_MONTH_YEAR_PANEL_DROPDOWN_ID,
+  DateTimePickerHeader,
+} from '@/ui/input/components/internal/date/components/DateTimePickerHeader';
 import { RelativeDatePickerHeader } from '@/ui/input/components/internal/date/components/RelativeDatePickerHeader';
 import { getHighlightedDates } from '@/ui/input/components/internal/date/utils/getHighlightedDates';
-import { getMonthSelectOptions } from '@/ui/input/components/internal/date/utils/getMonthSelectOptions';
 import { useCloseDropdown } from '@/ui/layout/dropdown/hooks/useCloseDropdown';
-import { ClickOutsideListenerContext } from '@/ui/utilities/pointer-event/contexts/ClickOutsideListenerContext';
 import { useTheme } from '@emotion/react';
 import styled from '@emotion/styled';
-import {
-  autoUpdate,
-  flip,
-  FloatingPortal,
-  offset,
-  shift,
-  useDismiss,
-  useFloating,
-} from '@floating-ui/react';
 import { t } from '@lingui/core/macro';
-import { lazy, Suspense, useState, type ComponentType } from 'react';
+import { lazy, Suspense, type ComponentType } from 'react';
 import type { ReactDatePickerProps as ReactDatePickerLibProps } from 'react-datepicker';
 import Skeleton, { SkeletonTheme } from 'react-loading-skeleton';
-import { useRecoilValue } from 'recoil';
 
 import 'react-datepicker/dist/react-datepicker.css';
 
@@ -44,17 +31,12 @@ import { useGetShiftedDateToSystemTimeZone } from '@/ui/input/components/interna
 import { useUserFirstDayOfTheWeek } from '@/ui/input/components/internal/date/hooks/useUserFirstDayOfTheWeek';
 import { useUserTimezone } from '@/ui/input/components/internal/date/hooks/useUserTimezone';
 import { Temporal } from 'temporal-polyfill';
-import { SOURCE_LOCALE } from 'twenty-shared/translations';
 
-export const MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID =
-  'date-picker-month-and-year-dropdown-month-select';
-export const MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID =
-  'date-picker-month-and-year-dropdown-year-select';
-
-export const YEARS_SELECT_OPTIONS = Array.from(
-  { length: 200 },
-  (_, i) => new Date().getFullYear() + 50 - i,
-).map((year) => ({ label: year.toString(), value: year }));
+export { DATE_TIME_PICKER_MONTH_YEAR_PANEL_DROPDOWN_ID } from '@/ui/input/components/internal/date/components/DateTimePickerHeader';
+export {
+  MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID,
+  MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID,
+} from '@/ui/input/components/internal/date/components/DatePicker';
 
 const StyledOuterWrapper = styled.div`
   position: relative;
@@ -62,20 +44,6 @@ const StyledOuterWrapper = styled.div`
   flex-direction: row;
   align-items: flex-start;
   width: 280px;
-`;
-
-const StyledMonthYearSelector = styled.div`
-  background: ${({ theme }) => theme.background.transparent.primary};
-  backdrop-filter: ${({ theme }) => theme.blur.medium};
-  border: 1px solid ${({ theme }) => theme.border.color.medium};
-  border-radius: ${({ theme }) => theme.border.radius.md};
-  box-shadow: ${({ theme }) => theme.boxShadow.strong};
-  display: flex;
-  flex-direction: column;
-  gap: ${({ theme }) => theme.spacing(1)};
-  padding: ${({ theme }) => theme.spacing(1)};
-  width: 160px;
-  z-index: ${RootStackingContextZIndices.DropdownPortalBelowModal};
 `;
 
 const StyledContainer = styled.div<{
@@ -392,9 +360,6 @@ export const DateTimePicker = ({
 }: DateTimePickerProps) => {
   const theme = useTheme();
 
-  const currentWorkspaceMember = useRecoilValue(currentWorkspaceMemberState);
-  const userLocale = currentWorkspaceMember?.locale ?? SOURCE_LOCALE;
-
   const { userFirstDayOfTheWeek } = useUserFirstDayOfTheWeek();
 
   const { userTimezone } = useUserTimezone();
@@ -402,37 +367,7 @@ export const DateTimePicker = ({
   const dateToUse =
     date ?? Temporal.Now.zonedDateTimeISO(timeZone ?? userTimezone);
 
-  const [showMonthYearSelector, setShowMonthYearSelector] = useState(false);
-
-  const { closeDropdown: closeDropdownMonthSelect } = useCloseDropdown();
-  const { closeDropdown: closeDropdownYearSelect } = useCloseDropdown();
-
-  const closeMonthYearInnerDropdowns = () => {
-    closeDropdownYearSelect(MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID);
-    closeDropdownMonthSelect(MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID);
-  };
-
-  const { refs, floatingStyles, context } = useFloating({
-    open: showMonthYearSelector,
-    onOpenChange: (isOpen) => {
-      if (!isOpen) {
-        closeMonthYearInnerDropdowns();
-      }
-
-      setShowMonthYearSelector(isOpen);
-    },
-    placement: 'bottom-start',
-    middleware: [
-      offset(8),
-      flip({ fallbackPlacements: ['bottom-end', 'top-start', 'top-end'] }),
-      shift({ padding: 8 }),
-    ],
-    whileElementsMounted: autoUpdate,
-  });
-
-  const dismiss = useDismiss(context, {
-    outsidePress: true,
-  });
+  const { closeDropdown: closeMonthYearPanel } = useCloseDropdown();
 
   const { getShiftedDateToSystemTimeZone } =
     useGetShiftedDateToSystemTimeZone();
@@ -455,21 +390,12 @@ export const DateTimePicker = ({
   };
 
   const handleClear = () => {
-    closeDropdowns();
+    closeMonthYearPanel(DATE_TIME_PICKER_MONTH_YEAR_PANEL_DROPDOWN_ID);
     onClear?.();
   };
 
-  const closeDropdowns = () => {
-    closeMonthYearInnerDropdowns();
-    setShowMonthYearSelector(false);
-  };
-
-  const toggleMonthYearSelector = () => {
-    setShowMonthYearSelector((prev) => !prev);
-  };
-
   const handleClose = (newDate: Temporal.ZonedDateTime) => {
-    closeDropdowns();
+    closeMonthYearPanel(DATE_TIME_PICKER_MONTH_YEAR_PANEL_DROPDOWN_ID);
     onClose?.(newDate);
   };
 
@@ -603,8 +529,8 @@ export const DateTimePicker = ({
                   prevMonthButtonDisabled={prevMonthButtonDisabled}
                   nextMonthButtonDisabled={nextMonthButtonDisabled}
                   hideInput={hideHeaderInput}
-                  onToggleMonthYearSelector={toggleMonthYearSelector}
-                  calendarButtonRef={refs.setReference}
+                  onChangeMonth={handleChangeMonth}
+                  onChangeYear={handleChangeYear}
                 />
               )
             }
@@ -621,50 +547,6 @@ export const DateTimePicker = ({
           </>
         )}
       </StyledContainer>
-      {!isRelative && showMonthYearSelector && (
-        <FloatingPortal>
-          <StyledMonthYearSelector
-            ref={refs.setFloating}
-            style={floatingStyles}
-            onPointerDownCapture={dismiss.floating?.onPointerDownCapture}
-            data-click-outside-id={MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID}
-            data-globally-prevent-click-outside="true"
-          >
-            <ClickOutsideListenerContext.Provider
-              value={{
-                excludedClickOutsideId: MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID,
-              }}
-            >
-              <Select
-                dropdownId={MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID}
-                options={getMonthSelectOptions(userLocale)}
-                onChange={(month: number) => {
-                  handleChangeMonth(month);
-                }}
-                value={dateToUse.month}
-                fullWidth={false}
-                dropdownWidth={160}
-              />
-            </ClickOutsideListenerContext.Provider>
-            <ClickOutsideListenerContext.Provider
-              value={{
-                excludedClickOutsideId: MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID,
-              }}
-            >
-              <Select
-                dropdownId={MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID}
-                onChange={(year: number) => {
-                  handleChangeYear(year);
-                }}
-                value={dateToUse.year}
-                options={YEARS_SELECT_OPTIONS}
-                fullWidth={false}
-                dropdownWidth={160}
-              />
-            </ClickOutsideListenerContext.Provider>
-          </StyledMonthYearSelector>
-        </FloatingPortal>
-      )}
     </StyledOuterWrapper>
   );
 };

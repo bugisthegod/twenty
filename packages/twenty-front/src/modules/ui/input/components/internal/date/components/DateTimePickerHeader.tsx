@@ -1,14 +1,22 @@
 import styled from '@emotion/styled';
-import { type Ref, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useIMask } from 'react-imask';
+import { useRecoilValue } from 'recoil';
 
+import { currentWorkspaceMemberState } from '@/auth/states/currentWorkspaceMemberState';
 import { useDateTimeFormat } from '@/localization/hooks/useDateTimeFormat';
+import { Select } from '@/ui/input/components/Select';
 import { DateTimePickerInput } from '@/ui/input/components/internal/date/components/DateTimePickerInput';
 import { useTimeInput } from '@/ui/input/components/internal/date/hooks/useTimeInput';
+import { getMonthSelectOptions } from '@/ui/input/components/internal/date/utils/getMonthSelectOptions';
 import { getTimeBlocks } from '@/ui/input/components/internal/date/utils/getTimeBlocks';
 import { getTimeMask } from '@/ui/input/components/internal/date/utils/getTimeMask';
+import { Dropdown } from '@/ui/layout/dropdown/components/Dropdown';
+import { useCloseDropdown } from '@/ui/layout/dropdown/hooks/useCloseDropdown';
+import { ClickOutsideListenerContext } from '@/ui/utilities/pointer-event/contexts/ClickOutsideListenerContext';
 import { t } from '@lingui/core/macro';
 import { type Temporal } from 'temporal-polyfill';
+import { SOURCE_LOCALE } from 'twenty-shared/translations';
 import { isDefined } from 'twenty-shared/utils';
 import {
   IconCalendar,
@@ -17,6 +25,18 @@ import {
   IconClock,
 } from 'twenty-ui/display';
 import { LightIconButton } from 'twenty-ui/input';
+
+export const DATE_TIME_PICKER_MONTH_YEAR_PANEL_DROPDOWN_ID =
+  'date-time-picker-month-year-panel';
+
+const MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID =
+  'date-picker-month-and-year-dropdown-month-select';
+const MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID =
+  'date-picker-month-and-year-dropdown-year-select';
+const YEARS_SELECT_OPTIONS = Array.from(
+  { length: 200 },
+  (_, i) => new Date().getFullYear() + 50 - i,
+).map((year) => ({ label: year.toString(), value: year }));
 
 const StyledTimeRow = styled.div`
   align-items: center;
@@ -96,6 +116,14 @@ const StyledSeparator = styled.div`
   width: 100%;
 `;
 
+const StyledMonthYearSelector = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.spacing(1)};
+  padding: ${({ theme }) => theme.spacing(1)};
+  width: 160px;
+`;
+
 type DateTimePickerHeaderProps = {
   date: Temporal.ZonedDateTime | null;
   onChange?: (date: Temporal.ZonedDateTime | null) => void;
@@ -104,8 +132,8 @@ type DateTimePickerHeaderProps = {
   prevMonthButtonDisabled: boolean;
   nextMonthButtonDisabled: boolean;
   hideInput?: boolean;
-  onToggleMonthYearSelector?: () => void;
-  calendarButtonRef?: Ref<HTMLDivElement>;
+  onChangeMonth: (month: number) => void;
+  onChangeYear: (year: number) => void;
 };
 
 export const DateTimePickerHeader = ({
@@ -116,11 +144,22 @@ export const DateTimePickerHeader = ({
   prevMonthButtonDisabled,
   nextMonthButtonDisabled,
   hideInput = false,
-  onToggleMonthYearSelector,
-  calendarButtonRef,
+  onChangeMonth,
+  onChangeYear,
 }: DateTimePickerHeaderProps) => {
   const { timeFormat } = useDateTimeFormat();
   const { formatTime, parseTime, isHour12 } = useTimeInput(timeFormat);
+
+  const currentWorkspaceMember = useRecoilValue(currentWorkspaceMemberState);
+  const userLocale = currentWorkspaceMember?.locale ?? SOURCE_LOCALE;
+
+  const { closeDropdown: closeMonthSelect } = useCloseDropdown();
+  const { closeDropdown: closeYearSelect } = useCloseDropdown();
+
+  const closeInnerDropdowns = () => {
+    closeMonthSelect(MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID);
+    closeYearSelect(MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID);
+  };
 
   const { ref: iMaskRef, setValue } = useIMask(
     {
@@ -178,14 +217,57 @@ export const DateTimePickerHeader = ({
           </StyledTimeInputContainer>
         </StyledTimeInputWrapper>
         <StyledRightControls>
-          <div ref={calendarButtonRef}>
-            <LightIconButton
-              Icon={IconCalendar}
-              size="medium"
-              onClick={onToggleMonthYearSelector}
-              aria-label={t`Select month and year`}
-            />
-          </div>
+          <Dropdown
+            dropdownId={DATE_TIME_PICKER_MONTH_YEAR_PANEL_DROPDOWN_ID}
+            clickableComponent={
+              <LightIconButton
+                Icon={IconCalendar}
+                size="medium"
+                aria-label={t`Select month and year`}
+              />
+            }
+            dropdownPlacement="bottom-start"
+            dropdownOffset={{ y: 8 }}
+            onClose={closeInnerDropdowns}
+            excludedClickOutsideIds={[
+              MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID,
+              MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID,
+            ]}
+            dropdownComponents={
+              <StyledMonthYearSelector>
+                <ClickOutsideListenerContext.Provider
+                  value={{
+                    excludedClickOutsideId:
+                      MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID,
+                  }}
+                >
+                  <Select
+                    dropdownId={MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID}
+                    options={getMonthSelectOptions(userLocale)}
+                    onChange={onChangeMonth}
+                    value={date?.month}
+                    fullWidth={false}
+                    dropdownWidth={160}
+                  />
+                </ClickOutsideListenerContext.Provider>
+                <ClickOutsideListenerContext.Provider
+                  value={{
+                    excludedClickOutsideId:
+                      MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID,
+                  }}
+                >
+                  <Select
+                    dropdownId={MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID}
+                    onChange={onChangeYear}
+                    value={date?.year}
+                    options={YEARS_SELECT_OPTIONS}
+                    fullWidth={false}
+                    dropdownWidth={160}
+                  />
+                </ClickOutsideListenerContext.Provider>
+              </StyledMonthYearSelector>
+            }
+          />
           <StyledNavigationButtons>
             <LightIconButton
               Icon={IconChevronLeft}

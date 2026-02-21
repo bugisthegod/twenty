@@ -7,17 +7,20 @@ import { getMonthSelectOptions } from '@/ui/input/components/internal/date/utils
 import { ClickOutsideListenerContext } from '@/ui/utilities/pointer-event/contexts/ClickOutsideListenerContext';
 import { IconChevronLeft, IconChevronRight } from 'twenty-ui/display';
 import { LightIconButton } from 'twenty-ui/input';
-import {
-  MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID,
-  MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID,
-  YEARS_SELECT_OPTIONS,
-} from './DateTimePicker';
-
 import { currentWorkspaceMemberState } from '@/auth/states/currentWorkspaceMemberState';
 import { useRecoilValue } from 'recoil';
 import { Temporal } from 'temporal-polyfill';
 import { SOURCE_LOCALE } from 'twenty-shared/translations';
 import { isDefined } from 'twenty-shared/utils';
+
+const MONTH_AND_YEAR_DROPDOWN_MONTH_SELECT_ID =
+  'date-picker-month-and-year-dropdown-month-select';
+const MONTH_AND_YEAR_DROPDOWN_YEAR_SELECT_ID =
+  'date-picker-month-and-year-dropdown-year-select';
+const YEARS_SELECT_OPTIONS = Array.from(
+  { length: 200 },
+  (_, i) => new Date().getFullYear() + 50 - i,
+).map((year) => ({ label: year.toString(), value: year }));
 
 const StyledCustomDatePickerHeader = styled.div`
   align-items: center;
