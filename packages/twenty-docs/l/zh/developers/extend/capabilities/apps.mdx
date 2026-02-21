@@ -15,6 +15,7 @@ description: 以代码的形式构建并管理 Twenty 自定义项。
 
 * 以代码定义自定义对象和字段（受管理的数据模型）
 * 构建带有自定义触发器的逻辑函数
+* 为 AI 智能体定义技能
 * 将同一个应用部署到多个工作空间
 
 ## 先决条件
@@ -27,19 +28,32 @@ description: 以代码的形式构建并管理 Twenty 自定义项。
 使用官方脚手架创建一个新应用，然后进行身份验证并开始开发：
 
 ```bash filename="Terminal"
-# 搭建一个新应用
+# Scaffold a new app (includes all examples by default)
 npx create-twenty-app@latest my-twenty-app
 cd my-twenty-app
 
-# 如果你不使用 yarn@4
+# If you don't use yarn@4
 corepack enable
 yarn install
 
-# 使用你的 API 密钥进行身份验证（系统会提示你）
+# Authenticate using your API key (you'll be prompted)
 yarn twenty auth:login
 
-# 启动开发模式：会将本地更改自动同步到你的工作区
+# Start dev mode: automatically syncs local changes to your workspace
 yarn twenty app:dev
+```
+
+The scaffolder supports three modes for controlling which example files are included:
+
+```bash filename="Terminal"
+# Default (exhaustive): all examples (object, field, logic function, front component, view, navigation menu item, skill)
+npx create-twenty-app@latest my-app
+
+# Minimal: only core files (application-config.ts and default-role.ts)
+npx create-twenty-app@latest my-app --minimal
+
+# Interactive: select which examples to include
+npx create-twenty-app@latest my-app --interactive
 ```
 
 从这里您可以：
@@ -52,7 +66,10 @@ yarn twenty entity:add
 yarn twenty function:logs
 
 # 按名称执行一个函数
-yarn twenty function:execute -n my-function -p '{"name": "test"}'
+yarn twenty function:execute -n my-function -p '{\"name\": \"test\"}'
+
+# 执行安装后函数
+yarn twenty function:execute --postInstall
 
 # 从当前工作区卸载该应用
 yarn twenty app:uninstall
@@ -70,9 +87,9 @@ yarn twenty help
 * 将一个最小的基础应用复制到 `my-twenty-app/` 中
 * 添加本地 `twenty-sdk` 依赖和 Yarn 4 配置
 * 创建与 `twenty` CLI 关联的配置文件和脚本
-* 生成默认的应用配置和默认的函数角色
+* Generates core files (application config, default function role, post-install function) plus example files based on the scaffolding mode
 
-一个新生成的脚手架应用如下所示：
+A freshly scaffolded app with the default `--exhaustive` mode looks like this:
 
 ```text filename="my-twenty-app/"
 my-twenty-app/
@@ -86,16 +103,29 @@ my-twenty-app/
   eslint.config.mjs
   tsconfig.json
   README.md
-  public/                           # 公共资源文件夹（图像、字体等）
+  public/                           # Public assets folder (images, fonts, etc.)
   src/
-  ├── application-config.ts           # 必需 - 主应用程序配置
+  ├── application-config.ts           # Required - main application configuration
   ├── roles/
-  │   └── default-role.ts               # 用于逻辑函数的默认角色
+  │   └── default-role.ts               # Default role for logic functions
+  ├── objects/
+  │   └── example-object.ts             # Example custom object definition
+  ├── fields/
+  │   └── example-field.ts              # Example standalone field definition
   ├── logic-functions/
-  │   └── hello-world.ts                # 示例逻辑函数
-  └── front-components/
-      └── hello-world.tsx               # 示例前端组件
+  │   ├── hello-world.ts                # Example logic function
+  │   └── post-install.ts               # Post-install logic function
+  ├── front-components/
+  │   └── hello-world.tsx               # Example front component
+  ├── views/
+  │   └── example-view.ts                # Example saved view definition
+  ├── navigation-menu-items/
+  │   └── example-navigation-menu-item.ts # Example sidebar navigation link
+  └── skills/
+      └── example-skill.ts                # Example AI agent skill definition
 ```
+
+With `--minimal`, only the core files are created (`application-config.ts`, `roles/default-role.ts`, and `logic-functions/post-install.ts`). With `--interactive`, you choose which example files to include.
 
 总体来说：
 
@@ -112,13 +142,16 @@ my-twenty-app/
 
 该 SDK 通过在你的 TypeScript 文件中解析 **`export default define<Entity>({...})`** 调用来检测实体。 每种实体类型都有一个从 `twenty-sdk` 导出的对应辅助函数：
 
-| 辅助函数                     | 实体类型      |
-| ------------------------ | --------- |
-| `defineObject()`         | 自定义对象定义   |
-| `defineLogicFunction()`  | 逻辑函数定义    |
-| `defineFrontComponent()` | 前端组件定义    |
-| `defineRole()`           | 角色定义      |
-| `defineField()`          | 现有对象的字段扩展 |
+| 辅助函数                         | 实体类型                             |
+| ---------------------------- | -------------------------------- |
+| `defineObject()`             | 自定义对象定义                          |
+| `defineLogicFunction()`      | 逻辑函数定义                           |
+| `defineFrontComponent()`     | 前端组件定义                           |
+| `defineRole()`               | 角色定义                             |
+| `defineField()`              | 现有对象的字段扩展                        |
+| `defineView()`               | Saved view definitions           |
+| `defineNavigationMenuItem()` | Navigation menu item definitions |
+| `defineSkill()`              | AI agent skill definitions       |
 
 <Note>
   **文件命名是灵活的。** 实体检测基于 AST — SDK 会扫描你的源文件以查找 `export default define<Entity>({...})` 模式。 你可以按照自己的喜好组织文件和文件夹。 按实体类型分组（例如 `logic-functions/`、`roles/`）只是代码组织的一种约定，并非必需。
@@ -140,7 +173,7 @@ export default defineObject({
 后续命令将添加更多文件和文件夹：
 
 * `yarn twenty app:dev` 将在 `node_modules/twenty-sdk/generated` 中自动生成一个类型化的 API 客户端（类型化的 Twenty 客户端 + 工作区类型）。
-* `yarn twenty entity:add` 会在 `src/` 下为你的自定义对象、函数、前端组件或角色添加实体定义文件。
+* `yarn twenty entity:add` will add entity definition files under `src/` for your custom objects, functions, front components, roles, skills, and more.
 
 ## 身份验证
 
@@ -183,14 +216,17 @@ twenty-sdk 提供你在应用中使用的类型化构件和辅助函数。 以�
 
 该 SDK 提供辅助函数用于定义你的应用实体。 如 [实体检测](#entity-detection) 中所述，你必须使用 `export default define<Entity>({...})` 才能让你的实体被检测到：
 
-| 函数                       | 目的                 |
-| ------------------------ | ------------------ |
-| `defineApplication()`    | 配置应用元数据（必需，每个应用一个） |
-| `defineObject()`         | 定义带字段的自定义对象        |
-| `defineLogicFunction()`  | 定义带处理程序的逻辑函数       |
-| `defineFrontComponent()` | 为自定义 UI 定义前端组件     |
-| `defineRole()`           | 配置角色权限和对象访问        |
-| `defineField()`          | 为现有对象扩展额外字段        |
+| 函数                           | 目的                              |
+| ---------------------------- | ------------------------------- |
+| `defineApplication()`        | 配置应用元数据（必需，每个应用一个）              |
+| `defineObject()`             | 定义带字段的自定义对象                     |
+| `defineLogicFunction()`      | 定义带处理程序的逻辑函数                    |
+| `defineFrontComponent()`     | 为自定义 UI 定义前端组件                  |
+| `defineRole()`               | 配置角色权限和对象访问                     |
+| `defineField()`              | 为现有对象扩展额外字段                     |
+| `defineView()`               | Define saved views for objects  |
+| `defineNavigationMenuItem()` | Define sidebar navigation links |
+| `defineSkill()`              | Define AI agent skills          |
 
 这些函数会在构建时校验你的配置，并提供 IDE 自动补全和类型安全。
 
@@ -290,6 +326,7 @@ export default defineObject({
 * **应用的身份**：标识符、显示名称和描述。
 * **函数如何运行**：它们用于权限的角色。
 * **（可选）变量**：以环境变量形式提供给函数的键值对。
+* **（可选）安装后函数**：在应用安装后运行的逻辑函数。
 
 使用 `defineApplication()` 定义你的应用配置：
 
@@ -297,6 +334,7 @@ export default defineObject({
 // src/application-config.ts
 import { defineApplication } from 'twenty-sdk';
 import { DEFAULT_ROLE_UNIVERSAL_IDENTIFIER } from 'src/roles/default-role';
+import { POST_INSTALL_UNIVERSAL_IDENTIFIER } from 'src/logic-functions/post-install';
 
 export default defineApplication({
   universalIdentifier: '4ec0391d-18d5-411c-b2f3-266ddc1c3ef7',
@@ -312,6 +350,7 @@ export default defineApplication({
     },
   },
   defaultRoleUniversalIdentifier: DEFAULT_ROLE_UNIVERSAL_IDENTIFIER,
+  postInstallLogicFunctionUniversalIdentifier: POST_INSTALL_UNIVERSAL_IDENTIFIER,
 });
 ```
 
@@ -320,6 +359,7 @@ export default defineApplication({
 * `universalIdentifier` 字段是你拥有的确定性 ID；生成一次并在多次同步中保持稳定。
 * `applicationVariables` 会变成函数可用的环境变量（例如，`DEFAULT_RECIPIENT_NAME` 可作为 `process.env.DEFAULT_RECIPIENT_NAME` 使用）。
 * `defaultRoleUniversalIdentifier` 必须与角色文件一致（见下文）。
+* `postInstallLogicFunctionUniversalIdentifier`（可选）指向一个在应用安装后自动运行的逻辑函数。 参见 [安装后函数](#post-install-functions)。
 
 #### 角色和权限
 
@@ -457,6 +497,55 @@ export default defineLogicFunction({
 
 * `triggers` 数组是可选的。 没有触发器的函数可作为实用函数，被其他函数调用。
 * 你可以在单个函数中混用多种触发器类型。
+
+### 安装后函数
+
+安装后函数是在你的应用安装到工作区后自动运行的逻辑函数。 这对于一次性设置任务很有用，例如填充默认数据、创建初始记录或配置工作区设置。
+
+当你使用 `create-twenty-app` 脚手架创建一个新应用时，会在 `src/logic-functions/post-install.ts` 为你生成一个安装后函数：
+
+```typescript
+// src/logic-functions/post-install.ts
+import { defineLogicFunction } from 'twenty-sdk';
+
+export const POST_INSTALL_UNIVERSAL_IDENTIFIER = '<generated-uuid>';
+
+const handler = async (): Promise<void> => {
+  console.log('Post install logic function executed successfully!');
+};
+
+export default defineLogicFunction({
+  universalIdentifier: POST_INSTALL_UNIVERSAL_IDENTIFIER,
+  name: 'post-install',
+  description: 'Runs after installation to set up the application.',
+  timeoutSeconds: 300,
+  handler,
+});
+```
+
+通过在 `application-config.ts` 中引用其通用标识符，可将该函数接入你的应用：
+
+```typescript
+import { POST_INSTALL_UNIVERSAL_IDENTIFIER } from 'src/logic-functions/post-install';
+
+export default defineApplication({
+  // ...
+  postInstallLogicFunctionUniversalIdentifier: POST_INSTALL_UNIVERSAL_IDENTIFIER,
+});
+```
+
+You can also manually execute the post-install function at any time using the CLI:
+
+```bash filename="Terminal"
+yarn twenty function:execute --postInstall
+```
+
+关键点：
+
+* Post-install functions are standard logic functions — they use `defineLogicFunction()` like any other function.
+* The `postInstallLogicFunctionUniversalIdentifier` field in `defineApplication()` is optional. If omitted, no function runs after installation.
+* The default timeout is set to 300 seconds (5 minutes) to allow for longer setup tasks like data seeding.
+* Post-install functions do not need triggers — they are invoked by the platform during installation or manually via `function:execute --postInstall`.
 
 ### 路由触发器负载
 
@@ -656,6 +745,41 @@ export default defineFrontComponent({
 
 * **脚手架生成**：运行 `yarn twenty entity:add` 并选择添加新前端组件的选项。
 * **手动**：创建一个新的 `*.front-component.tsx` 文件，并使用 `defineFrontComponent()`。
+
+### 技能
+
+Skills define reusable instructions and capabilities that AI agents can use within your workspace. Use `defineSkill()` to define skills with built-in validation:
+
+```typescript
+// src/skills/example-skill.ts
+import { defineSkill } from 'twenty-sdk';
+
+export default defineSkill({
+  universalIdentifier: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+  name: 'sales-outreach',
+  label: 'Sales Outreach',
+  description: 'Guides the AI agent through a structured sales outreach process',
+  icon: 'IconBrain',
+  content: `You are a sales outreach assistant. When reaching out to a prospect:
+1. Research the company and recent news
+2. Identify the prospect's role and likely pain points
+3. Draft a personalized message referencing specific details
+4. Keep the tone professional but conversational`,
+});
+```
+
+关键点：
+
+* `name` is a unique identifier string for the skill (kebab-case recommended).
+* `label` is the human-readable display name shown in the UI.
+* `content` contains the skill instructions — this is the text the AI agent uses.
+* `icon` (optional) sets the icon displayed in the UI.
+* `description` (optional) provides additional context about the skill's purpose.
+
+You can create new skills in two ways:
+
+* **Scaffolded**: Run `yarn twenty entity:add` and choose the option to add a new skill.
+* **Manual**: Create a new file and use `defineSkill()`, following the same pattern.
 
 ### 生成的类型化客户端
 
